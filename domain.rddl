@@ -11,6 +11,7 @@
 domain can_storage {
 
   requirements {
+    cpf-deterministic,
     reward-deterministic,
     constrained-state
   };
@@ -200,7 +201,7 @@ domain can_storage {
     holding'(?c) = 
 	    if ([exists_{?s:shelf}(pick-up-conditions(?c, ?s) ^ pick-up(?c))] ^
 		[~exists_{?c1:can, ?s:shelf}(?c1 ~= ?c ^ pick-up-conditions(?c1, ?s) ^ pick-up(?c1))])
-		then Bernoulli(max[min[1.0 - (y_position_c(?c)-y_position_a),1],0] )
+		then true
 	    else if ([exists_{?s:shelf}(put-down-conditions(?c, ?s) ^ put-down(?c))])
 		then false
 	    else holding(?c);
@@ -241,7 +242,7 @@ domain can_storage {
 			    ((x_position_c(?c) + move_x < MIN_X) |
 			     (x_position_c(?c) + SIZE_X_c(?c) + move_x > MAX_X))
 			)]) then 0.0
-			else Normal((x_position_a + move_x), MAX_X/100.0);
+			else move_x;
 			
     effective_move_y = if (~safe-position ^
 		     [~exists_{?s:shelf, ?c:can}(break_y(?c, ?s))] ^ 
@@ -249,7 +250,7 @@ domain can_storage {
 		     (y_position_a + move_y <= MAX_Y) ^
 		     [~exists_{?c:can}(
 		     ( 
-		     holding(?c)) ^ (y_position_a + SIZE_Y_c(?c) + move_y >= MAX_Y))]) then Normal((y_position_a + move_y), MAX_Y/100.0)
+		     holding(?c)) ^ (y_position_a + SIZE_Y_c(?c) + move_y >= MAX_Y))]) then move_y
 		     else 0.0;
 
     x_position_a' = 
@@ -264,7 +265,7 @@ domain can_storage {
 		)] |
 		[exists_{?c:can, ?s:shelf}(break_x(?c, ?s))]
 	    ) then x_position_a
-	    else x_position_a + effective_move_x;
+	    else x_position_a + move_x;
 
                  
 
@@ -279,7 +280,7 @@ domain can_storage {
 		     (y_position_a + move_y < MAX_Y) ^
 		     [~exists_{?c:can}(
 		     (holding'(?c) | 
-		     holding(?c)) ^ (y_position_a + SIZE_Y_c(?c) + move_y > MAX_Y))]) then y_position_a + effective_move_y
+		     holding(?c)) ^ (y_position_a + SIZE_Y_c(?c) + move_y > MAX_Y))]) then y_position_a + move_y
 	    else y_position_a;
 
 
@@ -295,5 +296,11 @@ domain can_storage {
       [exists_{?s:shelf}([forall_{?c:can}(on-shelf(?c,?s))])];
   };
   
+  action-preconditions {
+        move_x <= (MAX_X - MIN_X);
+        move_y <= (MAX_Y - MIN_Y);
+        move_x >= -(MAX_X - MIN_X);
+        move_y >= -(MAX_Y - MIN_Y);
+    };
     
 }
