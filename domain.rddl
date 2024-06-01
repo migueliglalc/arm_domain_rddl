@@ -47,6 +47,7 @@ domain can_storage {
     break_x(can, shelf)                : { interm-fluent, bool};  // returns whether can avoids extension of arm in shelf of the given real size
     break_y(can, shelf)                : { interm-fluent, bool};  // returns whether can avoids a left or right shift of the arm in shelf
     break_extension(can, can, shelf)   : { interm-fluent, bool};  // returns whether can avoids the arm going from safe to working position
+    break_retraction(can, can, shelf)  : { interm-fluent, bool};
     put-down-conditions(can,shelf)     : { interm-fluent, bool};
     pick-up-conditions(can, shelf)     : { interm-fluent, bool};
     effective_move_x                   : { interm-fluent, real};
@@ -169,6 +170,26 @@ domain can_storage {
                                         ) then true
                                         else false
                                      else false;
+                                     
+     break_retraction(?c, ?c1, ?s) = 
+     				if (on-shelf(?c,?s) ) then
+    			      		if (
+    			      		   ( y_position_c(?c) + SIZE_Y_c(?c)<= y_position_c(?c1))^
+    			      		   
+    			      		   ( 
+		                                  (
+		                                    ( (x_position_c(?c1) + SIZE_X_c(?c1) + effective_move_x ) >= x_position_c(?c))^
+		                                    ( (x_position_c(?c1) + SIZE_X_c(?c1) + effective_move_x ) <= (x_position_c(?c) + SIZE_X_c(?c)) )
+		                                  )
+		                                  |
+		                                  (
+		                                    ( x_position_c(?c1) + effective_move_x >= x_position_c(?c))^
+		                                    ( x_position_c(?c1) + effective_move_x <= (x_position_c(?c) + SIZE_X_c(?c)) )
+		                                  )
+                                            )
+                                        ) then true
+                                        else false
+                                     else false;
                                         
 
 
@@ -271,7 +292,7 @@ domain can_storage {
 
     y_position_a' = 
 	    if (retract-off-shelf ^ ~safe-position ^ 
-		[~exists_{?s:shelf, ?c:can}(break_y(?c, ?s))]) then SAFE_POSITION_Y
+		[~exists_{?s:shelf, ?c:can, ?c1: can}(?c ~= ?c1^ holding(?c1)^break_retraction(?c, ?c1, ?s))]) then SAFE_POSITION_Y
 	    else if (extend-to-shelf ^ safe-position ^ 
 		     [~exists_{?c:can, ?c1:can, ?s:shelf}(?c ~= ?c1 ^ holding(?c1) ^ (working-shelf(?s) | working-shelf'(?s)) ^ break_extension(?c, ?c1, ?s))]) then 0.0
 	    else if (~safe-position ^
